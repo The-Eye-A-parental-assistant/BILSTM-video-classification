@@ -18,9 +18,9 @@ Video classification example with Inception and LSTM. See detailed description i
 `	$ python extract_files.py mp4`
 
 3. Check the data_file.csv and choose the acceptable sequence length of frames. It should be less or equal to lowest one if you want to process all videos in dataset.
-4. Extract sequence for each video with InceptionV3 and train LSTM. Run train.py script with sequence_length, class_limit, image_height, image_width args
+4. Extract sequence for each video with CNN and train LSTM/BILSTM. Run train.py script with sequence_length, class_limit, image_height, image_width, epochs, CNN model, LSTM model args
 
-`	$ python train.py 75 2 720 1280`
+`	$ python train.py 75 2 720 1280 10 inception bilstm`
 
 5. Save your best model file. (For example, lstm-features.hdf5)
 6. Use clasify.py script to clasify your video. Args sequence_length, class_limit, saved_model_file, video_filename
