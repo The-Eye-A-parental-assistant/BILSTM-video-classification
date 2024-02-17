@@ -168,7 +168,7 @@ class DataSet():
             for _ in range(batch_size):
                 # Reset to be safe.
                 sequence = None
-
+                # print(data)
                 # Get a random sample.
                 sample = random.choice(data)
 

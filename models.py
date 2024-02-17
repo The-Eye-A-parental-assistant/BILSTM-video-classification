@@ -1,13 +1,13 @@
 """
 A collection of models we'll use to attempt to classify videos.
 """
-from keras.layers import Dense, Flatten, Dropout, ZeroPadding3D
-from keras.layers.recurrent import LSTM
+from tensorflow import keras
+from keras.layers import Dense, Flatten, Dropout, ZeroPadding3D,LSTM,TimeDistributed
+from keras.layers import LSTM, Bidirectional
 from keras.models import Sequential, load_model
 from keras.optimizers import Adam, RMSprop
-from keras.layers.wrappers import TimeDistributed
-from keras.layers.convolutional import (Conv2D, MaxPooling3D, Conv3D,
-    MaxPooling2D)
+from keras.layers import TimeDistributed
+from keras.layers import Conv2D, MaxPooling3D, Conv3D,MaxPooling2D
 from collections import deque
 import sys
 
@@ -15,7 +15,7 @@ class ResearchModels():
     def __init__(self, nb_classes, model, seq_length,
                  saved_model=None, features_length=2048):
         """
-        `model` = lstm (only one for this case)
+        `model` = lstm/bilstm
         `nb_classes` = the number of classes to predict
         `seq_length` = the length of our video sequences
         `saved_model` = the path to a saved Keras model to load
@@ -41,12 +41,16 @@ class ResearchModels():
             print("Loading LSTM model.")
             self.input_shape = (seq_length, features_length)
             self.model = self.lstm()
+        elif model == 'bilstm':
+            print("Loading Bi-LSTM model.")
+            self.input_shape = (seq_length, features_length)
+            self.model = self.bilstm()
         else:
             print("Unknown network.")
             sys.exit()
 
         # Now compile the network.
-        optimizer = Adam(lr=1e-5, decay=1e-6)
+        optimizer = Adam(lr=1e-5)
         self.model.compile(loss='categorical_crossentropy', optimizer=optimizer,
                            metrics=metrics)
 
@@ -64,4 +68,16 @@ class ResearchModels():
         model.add(Dropout(0.5))
         model.add(Dense(self.nb_classes, activation='softmax'))
 
+        return model
+
+    def bilstm(self):
+        """Build a simple LSTM network. We pass the extracted features from
+        our CNN to this model predomenently."""
+        # Model.
+        model = Sequential()
+        model.add(Bidirectional(LSTM(2048, return_sequences=False,dropout=0.5), merge_mode='concat',input_shape=self.input_shape))
+        model.add(Dense(512, activation='relu'))
+        model.add(Dropout(0.5))
+        model.add(Dense(self.nb_classes, activation='softmax'))
+        model.build()
         return model

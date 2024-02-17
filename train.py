@@ -1,10 +1,12 @@
 """
 Train our LSTM on extracted features.
 """
+
 from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, CSVLogger
 from models import ResearchModels
 from data import DataSet
 from extract_features import extract_features
+from tensorflow.compat.v1 import ConfigProto, InteractiveSession
 import time
 import os.path
 import sys
@@ -15,7 +17,7 @@ def train(data_type, seq_length, model, saved_model=None,
     # Helper: Save the model.
     checkpointer = ModelCheckpoint(
         filepath=os.path.join('data', 'checkpoints', model + '-' + data_type + \
-            '.{epoch:03d}-{val_loss:.3f}.hdf5'),
+            '.{epoch:03d}-{val_loss:.3f}-best.hdf5'),
         verbose=1,
         save_best_only=True)
 
@@ -70,30 +72,40 @@ def train(data_type, seq_length, model, saved_model=None,
             verbose=1,
             callbacks=[tb, early_stopper, csv_logger, checkpointer],
             epochs=nb_epoch)
+        print("Evaluate on test data")
+        results = rm.model.evaluate(X_test, y_test, batch_size=32)
+        print("test loss, test acc:", results)
     else:
         # Use fit generator.
-        rm.model.fit_generator(
-            generator=generator,
+        rm.model.fit(
+            generator,
             steps_per_epoch=steps_per_epoch,
             epochs=nb_epoch,
             verbose=1,
             callbacks=[tb, early_stopper, csv_logger, checkpointer],
             validation_data=val_generator,
-            validation_steps=40,
-            workers=4)
+            validation_steps=40,workers=2)
+        # print("Evaluate on test data")
+        # results = rm.model.evaluate(val_generator, batch_size=32)
+        # print("test loss, test acc:", results)
+    
 
 def main():
     """These are the main training settings. Set each before running
     this file."""
 
-    if (len(sys.argv) == 5):
+    if (len(sys.argv) == 8):
         seq_length = int(sys.argv[1])
         class_limit = int(sys.argv[2])
         image_height = int(sys.argv[3])
         image_width = int(sys.argv[4])
+        nb_epoch = int(sys.argv[5])
+        cnn_model = str(sys.argv[6])
+        rnn_model = str(sys.argv[7])
+        
     else:
         print ("Usage: python train.py sequence_length class_limit image_height image_width")
-        print ("Example: python train.py 75 2 720 1280")
+        print ("Example: python train.py 75 2 720 1280 100 \"cnn model\" \"rnn model\"")
         exit (1)
 
     sequences_dir = os.path.join('data', 'sequences')
@@ -105,18 +117,20 @@ def main():
         os.mkdir(checkpoints_dir)
 
     # model can be only 'lstm'
-    model = 'lstm'
+    model = rnn_model
     saved_model = None  # None or weights file
     load_to_memory = False # pre-load the sequences into memory
     batch_size = 32
-    nb_epoch = 1000
     data_type = 'features'
     image_shape = (image_height, image_width, 3)
 
-    extract_features(seq_length=seq_length, class_limit=class_limit, image_shape=image_shape)
+    extract_features(seq_length=seq_length, class_limit=class_limit, image_shape=image_shape, cnn_model = cnn_model)
     train(data_type, seq_length, model, saved_model=saved_model,
           class_limit=class_limit, image_shape=image_shape,
           load_to_memory=load_to_memory, batch_size=batch_size, nb_epoch=nb_epoch)
 
 if __name__ == '__main__':
+    config = ConfigProto()
+    config.gpu_options.allow_growth = True
+    session = InteractiveSession(config = config)
     main()
