@@ -15,12 +15,12 @@ from data import DataSet
 from extractor import Extractor
 from tqdm import tqdm
 
-def extract_features(seq_length=40, class_limit=2, image_shape=(299, 299, 3)):
+def extract_features(seq_length=40, class_limit=2, image_shape=(299, 299, 3),cnn_model = 'inception'):
     # Get the dataset.
     data = DataSet(seq_length=seq_length, class_limit=class_limit, image_shape=image_shape)
 
     # get the model.
-    model = Extractor(image_shape=image_shape)
+    model = Extractor(image_shape=image_shape, cnn_model= cnn_model)
 
     # Loop through data.
     pbar = tqdm(total=len(data.data))
