@@ -11,6 +11,7 @@ import operator
 import threading
 from processor import process_image
 from keras.utils import to_categorical
+import cv2
 
 class threadsafe_iterator:
     def __init__(self, iterator):
@@ -149,7 +150,7 @@ class DataSet():
         return np.array(X), np.array(y)
 
     @threadsafe_generator
-    def frame_generator(self, batch_size, train_test, data_type):
+    def frame_generator(self, batch_size, train_test, data_type, augmentation= False):
         """Return a generator that we can use to train on. There are
         a couple different things we can return:
 
@@ -187,10 +188,107 @@ class DataSet():
                     if sequence is None:
                         raise ValueError("Can't find sequence. Did you generate them?")
 
+                if augmentation: sample, label = self.augment(sequence, self.get_class_one_hot(sample[1]))
+
                 X.append(sequence)
                 y.append(self.get_class_one_hot(sample[1]))
 
             yield np.array(X), np.array(y)
+
+    def augment(self, sample, label):
+        """
+        Performing augmentation on the fly
+        each sample is a numpy array with shape: [# frames per sequence, H, W 3]
+        """
+
+        # sample info
+        H, W, c = sample[0].shape
+        seq_len = self.seq_length
+        assert len(sample) == seq_len, 'Somehow sequence lenght isn\'t correct!'
+
+        # augmentation hyperparams
+        angle     = 20   # maximum absolute (left or right) angle for rotation
+        mu        = 0    # mean for guassian noise
+        sigma     = 0.1  # std for gaussian noise
+        gamma_min = 0.5  # gamma for gamma conversion MAKE RANDOM UP TO 0.5?
+        flip_h_ch = 0.2  # chance of applying horizontal flip
+        flip_v_ch = 0.2  # chance of applying vertical flip
+
+        # augmentation parameters that need to be constant for a single sample
+        rand_rot = np.random.randint(-angle, angle)
+        M = cv2.getRotationMatrix2D((W / 2, H / 2), rand_rot, 1)
+
+        flip_hor = np.random.uniform() < flip_h_ch
+        flip_ver = np.random.uniform() < flip_v_ch
+
+        # loop over each frame only once for efficiency (i.e. not in every of the augmentation functions
+        for i, frame in enumerate(sample):
+
+            # apply augmentations
+            frame = self.rotate(frame, M, H, W)
+            frame = self.gaussian_noise(frame, H, W, c, mu=mu, sigma=sigma)
+            frame = self.gamma_conversion(frame, gamma_min=gamma_min)
+            if flip_hor: frame = self.flip_horizontal(frame)
+            if flip_ver: frame = self.flip_vertical(frame)
+
+            # update the frame in the sample
+            sample[i] = frame
+
+        # flip the label in case the images gets horizontally flipped
+        if flip_ver: label = np.ones_like(label, dtype=label.dtype) - label
+
+        return sample, label
+
+    @staticmethod
+    def rotate(frame, M, H, W):
+        '''Applies same/consistent rotation to each frame in a sample'''
+
+        return cv2.warpAffine(frame, M, (W, H), borderMode=cv2.BORDER_REPLICATE)
+
+    @staticmethod
+    def gaussian_noise(frame, H, W, c, mu=0, sigma=0.1):
+        '''Applies different random/guassian noise separately to each frame of sample'''
+
+        # get noise params, okay to be different for each frame in a single sample
+        gauss = np.random.normal(mu, sigma, (H, W, c))
+        # apply noise
+        frame = np.clip(frame + gauss, 0, 1)
+
+        return frame
+
+    @staticmethod
+    def flip_vertical(frame):
+        '''Applies vertical flipping similarly/consistently over all frame of sample'''
+
+        frame = frame[:, ::-1, :]
+
+        return frame
+
+    @staticmethod
+    def flip_horizontal(frame):
+        '''Applies horizontal flipping similarly/consistently over all frame of sample'''
+
+        frame = frame[::-1, :, :]
+
+        return frame
+
+    @staticmethod
+    def translate(sample, seq_len, H, W, c, mu=0, sigma=0.1):
+        # NOT IMPLEMENTED
+        return sample
+
+    @staticmethod
+    def gamma_conversion(frame, gamma_min=0.75):
+        '''Applies gamma conversion separately to each frame of sample'''
+
+        # get conversion params, might be okay to change for each frame?
+        gamma = np.random.uniform(gamma_min, 1.)
+        gamma = 1 / gamma if np.random.uniform() < 0.5 else gamma
+
+        # apply conversion
+        frame = frame ** (1.0 / gamma)
+
+        return frame
 
     def build_image_sequence(self, frames):
         """Given a set of frames (filenames), build our sequence."""
