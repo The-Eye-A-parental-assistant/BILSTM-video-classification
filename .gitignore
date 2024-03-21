@@ -3,9 +3,12 @@ __pycache__
 *rar
 *zip
 *gz
+*mp4
 *avi
 *swp
 data/logs/*
+data/injuries/*
+data/injuries_test/*
 data/checkpoints/*
 data/sequences/*
 data/train/*
