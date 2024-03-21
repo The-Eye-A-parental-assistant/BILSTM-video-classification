@@ -3,7 +3,7 @@ A collection of models we'll use to attempt to classify videos.
 """
 from tensorflow import keras
 from keras.layers import Dense, Flatten, Dropout, ZeroPadding3D,LSTM,TimeDistributed
-from keras.layers import LSTM, Bidirectional, CuDNNLSTM
+from keras.layers import LSTM, Bidirectional
 from keras.models import Sequential, load_model
 from keras.optimizers import Adam, RMSprop
 from keras.layers import TimeDistributed
@@ -61,11 +61,11 @@ class ResearchModels():
         our CNN to this model predomenently."""
         # Model.
         model = Sequential()
-        model.add(CuDNNLSTM(2048, return_sequences=True,
+        model.add(LSTM(2048, return_sequences=True,
                    input_shape=self.input_shape,
                    dropout=0.5))
-        model.add(CuDNNLSTM(1024, return_sequences=True, dropout=0.5))
-        model.add(CuDNNLSTM(512, return_sequences=False, dropout=0.5))
+        model.add(LSTM(1024, return_sequences=True, dropout=0.5))
+        model.add(LSTM(512, return_sequences=False, dropout=0.5))
         model.add(Dense(512, activation='relu'))
         model.add(Dropout(0.5))
         model.add(Dense(self.nb_classes, activation='softmax'))
@@ -76,10 +76,11 @@ class ResearchModels():
         our CNN to this model predomenently."""
         # Model.
         #3adel el model, not as good
+        print(self.input_shape)
         model = Sequential()
-        model.add(Bidirectional(LSTM(2048, return_sequences=False,dropout=0.5), merge_mode='concat',input_shape=self.input_shape))
-        model.add(Bidirectional(CuDNNLSTM(1024, return_sequences=True, dropout=0.5)))
-        model.add(Bidirectional(CuDNNLSTM(512, return_sequences=False, dropout=0.5)))
+        model.add(Bidirectional(LSTM(2048, return_sequences=True,dropout=0.5), merge_mode='concat',input_shape=self.input_shape))
+        model.add(Bidirectional(LSTM(1024, return_sequences=True, dropout=0.5)))
+        model.add(Bidirectional(LSTM(512, return_sequences=False, dropout=0.5)))
         model.add(Dense(512, activation='relu'))
         model.add(Dropout(0.5))
         model.add(Dense(self.nb_classes, activation='softmax'))

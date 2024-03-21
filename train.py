@@ -1,7 +1,7 @@
 """
 Train our LSTM on extracted features.
 """
-
+import tensorflow as tf
 from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, CSVLogger
 from models import ResearchModels
 from data import DataSet
@@ -11,13 +11,16 @@ import time
 import os.path
 import sys
 
+gpus = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(gpus[0], True)
+
 def train(data_type, seq_length, model, saved_model=None,
           class_limit=None, image_shape=None,
           load_to_memory=False, batch_size=32, nb_epoch=100):
     # Helper: Save the model.
     checkpointer = ModelCheckpoint(
         filepath=os.path.join('data', 'checkpoints', model + '-' + data_type + \
-            '.{epoch:03d}-{val_loss:.3f}-best.hdf5'),
+            '.{epoch:03d}-{val_accuracy:.3f}-best.hdf5'),
         verbose=1,
         save_best_only=True)
 
@@ -120,7 +123,7 @@ def main():
     model = rnn_model
     saved_model = None  # None or weights file
     load_to_memory = False # pre-load the sequences into memory
-    batch_size = 32
+    batch_size = 16
     data_type = 'features'
     image_shape = (image_height, image_width, 3)
 
