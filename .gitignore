@@ -1,5 +1,4 @@
 __pycache__
-*jpg
 *rar
 *zip
 *gz
@@ -7,10 +6,11 @@ __pycache__
 *avi
 *swp
 data/logs/*
-data/injuries/*
-data/injuries_test/*
 data/checkpoints/*
 data/sequences/*
+data/c3d/*
+data/injuries/
+data/injuries_test/
 data/train/*
 data/test/*
-data/c3d/*
+

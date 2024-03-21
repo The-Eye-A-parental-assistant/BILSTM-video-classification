@@ -116,7 +116,7 @@ def main():
     if not os.path.exists(checkpoints_dir):
         os.mkdir(checkpoints_dir)
 
-    # model can be only 'lstm'
+    # model can be only 'lstm' or 'bilstm'
     model = rnn_model
     saved_model = None  # None or weights file
     load_to_memory = False # pre-load the sequences into memory
